@@ -88,12 +88,59 @@ class LoginWindow(QWidget):
 
                     if result:
                         print("Login successful")
+                        self.open_main_window()
                     else:
                         print("Login failed: Invalid credentials")
             except pymysql.MySQLError as e:
                 print(f"Error querying the database: {e}")
             finally:
                 connection.close()
+
+    def open_main_window(self):
+        self.main_window = MainWindow()
+        self.main_window.show()
+        self.close()
+
+class MainWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("Main Window")
+        self.setFixedSize(500, 400)
+
+        # Create buttons and position them using coordinates
+        self.record_button = QPushButton("Запись", self)
+        self.record_button.setGeometry(50, 50, 100, 40)
+
+        self.report_button = QPushButton("Отчёт", self)
+        self.report_button.setGeometry(200, 50, 100, 40)
+
+        self.employees_button = QPushButton("Сотрудники", self)
+        self.employees_button.setGeometry(350, 50, 100, 40)
+
+        self.schedule_button = QPushButton("Расписание", self)
+        self.schedule_button.setGeometry(50, 150, 100, 40)
+
+        self.animals_button = QPushButton("Животные", self)
+        self.animals_button.setGeometry(200, 150, 100, 40)
+
+        self.services_button = QPushButton("Услуги", self)
+        self.services_button.setGeometry(350, 150, 100, 40)
+
+        # Apply styles
+        self.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                padding: 10px;
+                font-size: 14px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
