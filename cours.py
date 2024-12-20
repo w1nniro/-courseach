@@ -126,6 +126,11 @@ class MainWindow(QWidget):
 
         self.services_button = QPushButton("Услуги", self)
         self.services_button.setGeometry(350, 150, 100, 40)
+        
+        # Add Exit button
+        self.exit_button = QPushButton("Выход", self)
+        self.exit_button.setGeometry(200, 300, 100, 40)
+        self.exit_button.clicked.connect(self.close)
 
         # Apply styles
         self.setStyleSheet("""
