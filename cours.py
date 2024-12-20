@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout
+from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, QTableWidget, QTableWidgetItem, QHBoxLayout, QHeaderView, QDialog, QMessageBox
 import sys
 import pymysql
 
@@ -21,10 +21,8 @@ class LoginWindow(QWidget):
         self.setWindowTitle("Login")
         self.setFixedSize(300, 200)
 
-        # Create layout
         layout = QVBoxLayout()
 
-        # Create and add widgets to the layout
         self.username_label = QLabel("Login:")
         layout.addWidget(self.username_label)
 
@@ -42,13 +40,11 @@ class LoginWindow(QWidget):
         self.login_button.clicked.connect(self.handle_login)
         layout.addWidget(self.login_button)
 
-        # Set the layout for the window
         self.setLayout(layout)
 
-        # Apply styles
         self.setStyleSheet("""
             QWidget {
-                background-color: #f0f0f0;
+                background-color: #f7f7f7;
             }
             QLabel {
                 font-size: 14px;
@@ -67,6 +63,7 @@ class LoginWindow(QWidget):
                 border-radius: 5px;
                 padding: 10px;
                 font-size: 14px;
+                margin-top: 10px;
             }
             QPushButton:hover {
                 background-color: #45a049;
@@ -81,7 +78,6 @@ class LoginWindow(QWidget):
         if connection:
             try:
                 with connection.cursor() as cursor:
-                    # Use 'employers' table for authentication
                     sql = "SELECT * FROM employers WHERE login=%s AND password=%s"
                     cursor.execute(sql, (login, password))
                     result = cursor.fetchone()
@@ -108,7 +104,6 @@ class MainWindow(QWidget):
         self.setWindowTitle("Main Window")
         self.setFixedSize(500, 400)
 
-        # Create buttons and position them using coordinates
         self.record_button = QPushButton("Запись", self)
         self.record_button.setGeometry(50, 50, 100, 40)
 
@@ -126,13 +121,12 @@ class MainWindow(QWidget):
 
         self.services_button = QPushButton("Услуги", self)
         self.services_button.setGeometry(350, 150, 100, 40)
+        self.services_button.clicked.connect(self.open_services_window)
         
-        # Add Exit button
         self.exit_button = QPushButton("Выход", self)
         self.exit_button.setGeometry(200, 300, 100, 40)
         self.exit_button.clicked.connect(self.close)
 
-        # Apply styles
         self.setStyleSheet("""
             QPushButton {
                 background-color: #4CAF50;
@@ -146,6 +140,234 @@ class MainWindow(QWidget):
                 background-color: #45a049;
             }
         """)
+
+    def open_services_window(self):
+        self.services_window = ServicesWindow()
+        self.services_window.show()
+        self.close()
+
+class ServicesWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("Services")
+        self.setFixedSize(600, 400)
+
+        layout = QVBoxLayout()
+
+        self.services_table = QTableWidget()
+        layout.addWidget(self.services_table)
+
+        button_layout = QHBoxLayout()
+        self.create_service_button = QPushButton("Создать услугу")
+        self.create_service_button.clicked.connect(self.open_create_service_dialog)
+        button_layout.addWidget(self.create_service_button)
+
+        self.delete_service_button = QPushButton("Удалить услугу")
+        self.delete_service_button.clicked.connect(self.delete_service)
+        button_layout.addWidget(self.delete_service_button)
+
+        self.back_button = QPushButton("Назад")
+        self.back_button.clicked.connect(self.go_back)
+        button_layout.addWidget(self.back_button)
+
+        layout.addLayout(button_layout)
+
+        self.setLayout(layout)
+
+        self.services_table.cellDoubleClicked.connect(self.edit_service)
+
+        self.load_services()
+
+        self.setStyleSheet("""
+            QTableWidget {
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                font-size: 14px;
+            }
+            QHeaderView::section {
+                background-color: #f0f0f0;
+                padding: 4px;
+                border: 1px solid #ddd;
+            }
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                padding: 10px;
+                font-size: 14px;
+                margin: 5px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+
+    def load_services(self):
+        connection = create_connection()
+        if connection:
+            try:
+                with connection.cursor() as cursor:
+                    sql = "SELECT * FROM service"
+                    cursor.execute(sql)
+                    services = cursor.fetchall()
+
+                    self.services_table.setRowCount(len(services))
+                    self.services_table.setColumnCount(3)  # Adjust based on your table structure
+                    self.services_table.setHorizontalHeaderLabels(['ID', 'Name', 'Price'])  # Adjust headers
+
+                    for row_index, service in enumerate(services):
+                        for col_index, data in enumerate(service):
+                            self.services_table.setItem(row_index, col_index, QTableWidgetItem(str(data)))
+
+                    self.services_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+            except pymysql.MySQLError as e:
+                print(f"Error querying the database: {e}")
+            finally:
+                connection.close()
+
+    def open_create_service_dialog(self):
+        dialog = CreateServiceDialog(self)
+        dialog.exec()
+        self.load_services()
+
+    def delete_service(self):
+        selected_row = self.services_table.currentRow()
+        if selected_row < 0:
+            QMessageBox.warning(self, "Warning", "Please select a service to delete.")
+            return
+
+        service_id = self.services_table.item(selected_row, 0).text()
+
+        connection = create_connection()
+        if connection:
+            try:
+                with connection.cursor() as cursor:
+                    sql = "DELETE FROM service WHERE id = %s"
+                    cursor.execute(sql, (service_id,))
+                    connection.commit()
+                    QMessageBox.information(self, "Success", "Service deleted successfully.")
+            except pymysql.MySQLError as e:
+                print(f"Error deleting the service: {e}")
+            finally:
+                connection.close()
+
+        self.load_services()
+
+    def edit_service(self, row, column):
+        service_id = self.services_table.item(row, 0).text()
+        service_name = self.services_table.item(row, 1).text()
+        service_price = self.services_table.item(row, 2).text()
+
+        dialog = EditServiceDialog(self, service_id, service_name, service_price)
+        dialog.exec()
+        self.load_services()
+
+    def go_back(self):
+        self.main_window = MainWindow()
+        self.main_window.show()
+        self.close()
+
+class CreateServiceDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.setWindowTitle("Create Service")
+        self.setFixedSize(300, 200)
+
+        layout = QVBoxLayout()
+
+        self.name_label = QLabel("Service Name:")
+        layout.addWidget(self.name_label)
+
+        self.name_input = QLineEdit()
+        layout.addWidget(self.name_input)
+
+        self.price_label = QLabel("Service Price:")
+        layout.addWidget(self.price_label)
+
+        self.price_input = QLineEdit()
+        layout.addWidget(self.price_input)
+
+        self.create_button = QPushButton("Create")
+        self.create_button.clicked.connect(self.create_service)
+        layout.addWidget(self.create_button)
+
+        self.setLayout(layout)
+
+    def create_service(self):
+        name = self.name_input.text()
+        price = self.price_input.text()
+
+        if not name or not price:
+            QMessageBox.warning(self, "Warning", "Please fill in all fields.")
+            return
+
+        connection = create_connection()
+        if connection:
+            try:
+                with connection.cursor() as cursor:
+                    sql = "INSERT INTO service (name, price) VALUES (%s, %s)"
+                    cursor.execute(sql, (name, price))
+                    connection.commit()
+                    QMessageBox.information(self, "Success", "Service created successfully.")
+                    self.accept()
+            except pymysql.MySQLError as e:
+                print(f"Error creating the service: {e}")
+            finally:
+                connection.close()
+
+class EditServiceDialog(QDialog):
+    def __init__(self, parent=None, ID_service=None, service_name=None, service_price=None):
+        super().__init__(parent)
+
+        self.ID_service = ID_service
+
+        self.setWindowTitle("Edit Service")
+        self.setFixedSize(300, 200)
+
+        layout = QVBoxLayout()
+
+        self.name_label = QLabel("Service Name:")
+        layout.addWidget(self.name_label)
+
+        self.name_input = QLineEdit(service_name)
+        layout.addWidget(self.name_input)
+
+        self.price_label = QLabel("Service Price:")
+        layout.addWidget(self.price_label)
+
+        self.price_input = QLineEdit(service_price)
+        layout.addWidget(self.price_input)
+
+        self.save_button = QPushButton("Save")
+        self.save_button.clicked.connect(self.save_service)
+        layout.addWidget(self.save_button)
+
+        self.setLayout(layout)
+
+    def save_service(self):
+        name = self.name_input.text()
+        price = self.price_input.text()
+
+        if not name or not price:
+            QMessageBox.warning(self, "Warning", "Please fill in all fields.")
+            return
+
+        connection = create_connection()
+        if connection:
+            try:
+                with connection.cursor() as cursor:
+                    sql = "UPDATE service SET name = %s, price = %s WHERE ID_service = %s"
+                    cursor.execute(sql, (name, price, self.ID_service))
+                    connection.commit()
+                    QMessageBox.information(self, "Success", "Service updated successfully.")
+                    self.accept()
+            except pymysql.MySQLError as e:
+                print(f"Error updating the service: {e}")
+            finally:
+                connection.close()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
