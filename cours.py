@@ -496,24 +496,24 @@ class CreateAnimalDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.setWindowTitle("Create Animal")
+        self.setWindowTitle("Создать")
         self.setFixedSize(300, 200)
 
         layout = QVBoxLayout()
 
-        self.name_label = QLabel("Animal Name:")
+        self.name_label = QLabel("Животное:")
         layout.addWidget(self.name_label)
 
         self.name_input = QLineEdit()
         layout.addWidget(self.name_input)
 
-        self.price_label = QLabel("Animal Price:")
+        self.price_label = QLabel("Цена:")
         layout.addWidget(self.price_label)
 
         self.price_input = QLineEdit()
         layout.addWidget(self.price_input)
 
-        self.create_button = QPushButton("Create")
+        self.create_button = QPushButton("Создать")
         self.create_button.clicked.connect(self.create_animal)
         layout.addWidget(self.create_button)
 
@@ -534,7 +534,7 @@ class CreateAnimalDialog(QDialog):
                     sql = "INSERT INTO animals (name, price) VALUES (%s, %s)"
                     cursor.execute(sql, (name, price))
                     connection.commit()
-                    QMessageBox.information(self, "Success", "Animal created successfully.")
+                    QMessageBox.information(self, "Success", "Новое животное.")
                     self.accept()
             except pymysql.MySQLError as e:
                 print(f"Error creating the animal: {e}")
@@ -547,24 +547,24 @@ class EditAnimalDialog(QDialog):
 
         self.ID_animals = ID_animals
 
-        self.setWindowTitle("Edit Animal")
+        self.setWindowTitle("Животное")
         self.setFixedSize(300, 200)
 
         layout = QVBoxLayout()
 
-        self.name_label = QLabel("Animal Name:")
+        self.name_label = QLabel("Животное:")
         layout.addWidget(self.name_label)
 
         self.name_input = QLineEdit(animal_name)
         layout.addWidget(self.name_input)
 
-        self.price_label = QLabel("Animal Price:")
+        self.price_label = QLabel("Цена:")
         layout.addWidget(self.price_label)
 
         self.price_input = QLineEdit(animal_price)
         layout.addWidget(self.price_input)
 
-        self.save_button = QPushButton("Save")
+        self.save_button = QPushButton("Сохранить")
         self.save_button.clicked.connect(self.save_animal)
         layout.addWidget(self.save_button)
 
@@ -647,6 +647,304 @@ class MainWindow(QWidget):
         self.services_window = ServicesWindow()
         self.services_window.show()
         self.close()
+        
+class EmployeesWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("Employees")
+        self.setFixedSize(800, 400)
+
+        layout = QVBoxLayout()
+
+        self.employees_table = QTableWidget()
+        layout.addWidget(self.employees_table)
+
+        button_layout = QHBoxLayout()
+        self.create_employee_button = QPushButton("Создать сотрудника")
+        self.create_employee_button.clicked.connect(self.open_create_employee_dialog)
+        button_layout.addWidget(self.create_employee_button)
+
+        self.delete_employee_button = QPushButton("Удалить сотрудника")
+        self.delete_employee_button.clicked.connect(self.delete_employee)
+        button_layout.addWidget(self.delete_employee_button)
+
+        self.back_button = QPushButton("Назад")
+        self.back_button.clicked.connect(self.go_back)
+        button_layout.addWidget(self.back_button)
+
+        layout.addLayout(button_layout)
+
+        self.setLayout(layout)
+
+        self.employees_table.cellDoubleClicked.connect(self.edit_employee)
+
+        self.load_employees()
+
+        self.setStyleSheet("""
+            QTableWidget {
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                font-size: 14px;
+            }
+            QHeaderView::section {
+                background-color: #f0f0f0;
+                padding: 4px;
+                border: 1px solid #ddd;
+            }
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                padding: 10px;
+                font-size: 14px;
+                margin: 5px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+
+    def load_employees(self):
+        connection = create_connection()
+        if connection:
+            try:
+                with connection.cursor() as cursor:
+                    sql = "SELECT * FROM employers"
+                    cursor.execute(sql)
+                    employees = cursor.fetchall()
+
+                    self.employees_table.setRowCount(len(employees))
+                    self.employees_table.setColumnCount(8)
+                    self.employees_table.setHorizontalHeaderLabels([
+                        'ID_employer', 'Login', 'Password', 'First Name', 
+                        'Middle Name', 'Last Name', 'Phone Number', 'E-mail'
+                    ])
+
+                    for row_index, employee in enumerate(employees):
+                        for col_index, data in enumerate(employee):
+                            self.employees_table.setItem(row_index, col_index, QTableWidgetItem(str(data)))
+
+                    self.employees_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+            except pymysql.MySQLError as e:
+                print(f"Error querying the database: {e}")
+            finally:
+                connection.close()
+
+    def open_create_employee_dialog(self):
+        dialog = CreateEmployeeDialog(self)
+        dialog.exec()
+        self.load_employees()
+
+    def delete_employee(self):
+        selected_row = self.employees_table.currentRow()
+        if selected_row < 0:
+            QMessageBox.warning(self, "Warning", "Please select an employee to delete.")
+            return
+
+        employee_id = self.employees_table.item(selected_row, 0).text()
+
+        connection = create_connection()
+        if connection:
+            try:
+                with connection.cursor() as cursor:
+                    sql = "DELETE FROM employers WHERE ID_employer = %s"
+                    cursor.execute(sql, (employee_id,))
+                    connection.commit()
+                    QMessageBox.information(self, "Success", "Employee deleted successfully.")
+            except pymysql.MySQLError as e:
+                print(f"Error deleting the employee: {e}")
+            finally:
+                connection.close()
+
+        self.load_employees()
+
+    def edit_employee(self, row, column):
+        employee_data = [self.employees_table.item(row, col).text() for col in range(self.employees_table.columnCount())]
+        dialog = EditEmployeeDialog(self, *employee_data)
+        dialog.exec()
+        self.load_employees()
+
+    def go_back(self):
+        self.main_window = MainWindow()
+        self.main_window.show()
+        self.close()
+
+class CreateEmployeeDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.setWindowTitle("Create Employee")
+        self.setFixedSize(400, 300)
+
+        layout = QVBoxLayout()
+
+        self.fields = {}
+        labels = ['Login', 'Password', 'First Name', 'Middle Name', 'Last Name', 'Phone Number', 'E-mail']
+        for label in labels:
+            lbl = QLabel(f"{label}:")
+            layout.addWidget(lbl)
+            line_edit = QLineEdit()
+            layout.addWidget(line_edit)
+            self.fields[label] = line_edit
+
+        self.create_button = QPushButton("Create")
+        self.create_button.clicked.connect(self.create_employee)
+        layout.addWidget(self.create_button)
+
+        self.setLayout(layout)
+
+    def create_employee(self):
+        data = {label: field.text() for label, field in self.fields.items()}
+
+        # Check only required fields
+        required_fields = ['First Name', 'Last Name', 'Phone Number', 'E-mail']
+        if any(not data[field] for field in required_fields):
+            QMessageBox.warning(self, "Warning", "Please fill in all required fields.")
+            return
+
+        connection = create_connection()
+        if connection:
+            try:
+                with connection.cursor() as cursor:
+                    sql = """
+                    INSERT INTO employers (login, password, first_name, middle_name, last_name, phone_number, email)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    """
+                    cursor.execute(sql, (
+                        data['Login'] or None,
+                        data['Password'] or None,
+                        data['First Name'],
+                        data['Middle Name'] or None,
+                        data['Last Name'],
+                        data['Phone Number'],
+                        data['E-mail']
+                    ))
+                    connection.commit()
+                    QMessageBox.information(self, "Success", "Employee created successfully.")
+                    self.accept()
+            except pymysql.MySQLError as e:
+                print(f"Error creating the employee: {e}")
+            finally:
+                connection.close()
+
+class EditEmployeeDialog(QDialog):
+    def __init__(self, parent=None, ID_employer=None, login=None, password=None, first_name=None, middle_name=None, last_name=None, phone_number=None, email=None):
+        super().__init__(parent)
+
+        self.ID_employer = ID_employer
+
+        self.setWindowTitle("Edit Employee")
+        self.setFixedSize(400, 300)
+
+        layout = QVBoxLayout()
+
+        self.fields = {}
+        labels = ['Login', 'Password', 'First Name', 'Middle Name', 'Last Name', 'Phone Number', 'E-mail']
+        values = [login, password, first_name, middle_name, last_name, phone_number, email]
+        for label, value in zip(labels, values):
+            lbl = QLabel(f"{label}:")
+            layout.addWidget(lbl)
+            line_edit = QLineEdit(value)
+            layout.addWidget(line_edit)
+            self.fields[label] = line_edit
+
+        self.save_button = QPushButton("Save")
+        self.save_button.clicked.connect(self.save_employee)
+        layout.addWidget(self.save_button)
+
+        self.setLayout(layout)
+
+    def save_employee(self):
+        data = {label: field.text() for label, field in self.fields.items()}
+
+        if any(not value for value in data.values()):
+            QMessageBox.warning(self, "Warning", "Please fill in all fields.")
+            return
+
+        connection = create_connection()
+        if connection:
+            try:
+                with connection.cursor() as cursor:
+                    sql = "UPDATE employers SET login = %s, password = %s, first_name = %s, middle_name = %s, last_name = %s, phone_number = %s, email = %s WHERE ID_employer = %s"
+                    cursor.execute(sql, (*data.values(), self.ID_employer))
+                    connection.commit()
+                    QMessageBox.information(self, "Success", "Employee updated successfully.")
+                    self.accept()
+            except pymysql.MySQLError as e:
+                print(f"Error updating the employee: {e}")
+            finally:
+                connection.close()
+
+# Update the MainWindow to open the EmployeesWindow
+class MainWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("Main Window")
+        self.setFixedSize(500, 400)
+
+        self.record_button = QPushButton("Запись", self)
+        self.record_button.setGeometry(50, 50, 100, 40)
+
+        self.report_button = QPushButton("Отчёт", self)
+        self.report_button.setGeometry(200, 50, 100, 40)
+
+        self.employees_button = QPushButton("Сотрудники", self)
+        self.employees_button.setGeometry(350, 50, 100, 40)
+        self.employees_button.clicked.connect(self.open_employees_window)
+
+        self.schedule_button = QPushButton("Расписание", self)
+        self.schedule_button.setGeometry(50, 150, 100, 40)
+
+        self.animals_button = QPushButton("Животные", self)
+        self.animals_button.setGeometry(200, 150, 100, 40)
+        self.animals_button.clicked.connect(self.open_animals_window)
+
+        self.services_button = QPushButton("Услуги", self)
+        self.services_button.setGeometry(350, 150, 100, 40)
+        self.services_button.clicked.connect(self.open_services_window)
+
+        self.exit_button = QPushButton("Выход", self)
+        self.exit_button.setGeometry(200, 300, 100, 40)
+        self.exit_button.clicked.connect(self.close)
+
+        self.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                padding: 10px;
+                font-size: 14px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+
+    def open_employees_window(self):
+        self.employees_window = EmployeesWindow()
+        self.employees_window.show()
+        self.close()
+
+    def open_animals_window(self):
+        self.animals_window = AnimalsWindow()
+        self.animals_window.show()
+        self.close()
+
+    def open_services_window(self):
+        self.services_window = ServicesWindow()
+        self.services_window.show()
+        self.close()
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = LoginWindow()
+    window.show()
+    sys.exit(app.exec())
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
