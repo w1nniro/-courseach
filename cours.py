@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, QTableWidget, QTableWidgetItem, QHBoxLayout, QHeaderView, QDialog, QMessageBox
+from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QComboBox, QDateEdit, QLineEdit, QPushButton, QVBoxLayout, QTableWidget, QTableWidgetItem, QHBoxLayout, QHeaderView, QDialog, QMessageBox
 import sys
 import pymysql
 
@@ -97,54 +97,6 @@ class LoginWindow(QWidget):
         self.main_window.show()
         self.close()
 
-class MainWindow(QWidget):
-    def __init__(self):
-        super().__init__()
-
-        self.setWindowTitle("Main Window")
-        self.setFixedSize(500, 400)
-
-        self.record_button = QPushButton("Запись", self)
-        self.record_button.setGeometry(50, 50, 100, 40)
-
-        self.report_button = QPushButton("Отчёт", self)
-        self.report_button.setGeometry(200, 50, 100, 40)
-
-        self.employees_button = QPushButton("Сотрудники", self)
-        self.employees_button.setGeometry(350, 50, 100, 40)
-
-        self.schedule_button = QPushButton("Расписание", self)
-        self.schedule_button.setGeometry(50, 150, 100, 40)
-
-        self.animals_button = QPushButton("Животные", self)
-        self.animals_button.setGeometry(200, 150, 100, 40)
-
-        self.services_button = QPushButton("Услуги", self)
-        self.services_button.setGeometry(350, 150, 100, 40)
-        self.services_button.clicked.connect(self.open_services_window)
-        
-        self.exit_button = QPushButton("Выход", self)
-        self.exit_button.setGeometry(200, 300, 100, 40)
-        self.exit_button.clicked.connect(self.close)
-
-        self.setStyleSheet("""
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                padding: 10px;
-                font-size: 14px;
-            }
-            QPushButton:hover {
-                background-color: #45a049;
-            }
-        """)
-
-    def open_services_window(self):
-        self.services_window = ServicesWindow()
-        self.services_window.show()
-        self.close()
 
 class ServicesWindow(QWidget):
     def __init__(self):
@@ -592,61 +544,6 @@ class EditAnimalDialog(QDialog):
             finally:
                 connection.close()
 
-# Update the MainWindow to open the AnimalsWindow
-class MainWindow(QWidget):
-    def __init__(self):
-        super().__init__()
-
-        self.setWindowTitle("Main Window")
-        self.setFixedSize(500, 400)
-
-        self.record_button = QPushButton("Запись", self)
-        self.record_button.setGeometry(50, 50, 100, 40)
-
-        self.report_button = QPushButton("Отчёт", self)
-        self.report_button.setGeometry(200, 50, 100, 40)
-
-        self.employees_button = QPushButton("Сотрудники", self)
-        self.employees_button.setGeometry(350, 50, 100, 40)
-
-        self.schedule_button = QPushButton("Расписание", self)
-        self.schedule_button.setGeometry(50, 150, 100, 40)
-
-        self.animals_button = QPushButton("Животные", self)
-        self.animals_button.setGeometry(200, 150, 100, 40)
-        self.animals_button.clicked.connect(self.open_animals_window)
-
-        self.services_button = QPushButton("Услуги", self)
-        self.services_button.setGeometry(350, 150, 100, 40)
-        self.services_button.clicked.connect(self.open_services_window)
-
-        self.exit_button = QPushButton("Выход", self)
-        self.exit_button.setGeometry(200, 300, 100, 40)
-        self.exit_button.clicked.connect(self.close)
-
-        self.setStyleSheet("""
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                padding: 10px;
-                font-size: 14px;
-            }
-            QPushButton:hover {
-                background-color: #45a049;
-            }
-        """)
-
-    def open_animals_window(self):
-        self.animals_window = AnimalsWindow()
-        self.animals_window.show()
-        self.close()
-
-    def open_services_window(self):
-        self.services_window = ServicesWindow()
-        self.services_window.show()
-        self.close()
         
 class EmployeesWindow(QWidget):
     def __init__(self):
@@ -775,8 +672,8 @@ class CreateEmployeeDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.setWindowTitle("Create Employee")
-        self.setFixedSize(400, 300)
+        self.setWindowTitle("Создать сотрудника")
+        self.setFixedSize(500, 400)
 
         layout = QVBoxLayout()
 
@@ -789,7 +686,7 @@ class CreateEmployeeDialog(QDialog):
             layout.addWidget(line_edit)
             self.fields[label] = line_edit
 
-        self.create_button = QPushButton("Create")
+        self.create_button = QPushButton("Создать")
         self.create_button.clicked.connect(self.create_employee)
         layout.addWidget(self.create_button)
 
@@ -876,6 +773,144 @@ class EditEmployeeDialog(QDialog):
                 print(f"Error updating the employee: {e}")
             finally:
                 connection.close()
+                
+class RecordWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("Запись")
+        self.setFixedSize(400, 500)
+
+        layout = QVBoxLayout()
+
+        # Input fields
+        self.first_name_input = QLineEdit()
+        self.first_name_input.setPlaceholderText("First Name")
+        layout.addWidget(self.first_name_input)
+
+        self.middle_name_input = QLineEdit()
+        self.middle_name_input.setPlaceholderText("Middle Name")
+        layout.addWidget(self.middle_name_input)
+
+        self.last_name_input = QLineEdit()
+        self.last_name_input.setPlaceholderText("Last Name")
+        layout.addWidget(self.last_name_input)
+
+        self.date_record_input = QDateEdit()
+        self.date_record_input.setCalendarPopup(True)
+        layout.addWidget(self.date_record_input)
+
+        self.phone_number_input = QLineEdit()
+        self.phone_number_input.setPlaceholderText("Phone Number")
+        layout.addWidget(self.phone_number_input)
+
+        # Dropdowns
+        self.animals_dropdown = QComboBox()
+        layout.addWidget(self.animals_dropdown)
+
+        self.services_dropdown = QComboBox()
+        layout.addWidget(self.services_dropdown)
+
+        self.employers_dropdown = QComboBox()
+        layout.addWidget(self.employers_dropdown)
+
+        # Price field
+        self.price_label = QLabel("Price: 0")
+        layout.addWidget(self.price_label)
+
+        # Buttons
+        self.create_button = QPushButton("Создать")
+        self.create_button.clicked.connect(self.create_record)
+        layout.addWidget(self.create_button)
+
+        self.back_button = QPushButton("Назад")
+        self.back_button.clicked.connect(self.go_back)
+        layout.addWidget(self.back_button)
+
+        self.setLayout(layout)
+
+        self.load_dropdowns()
+        self.services_dropdown.currentIndexChanged.connect(self.update_price)
+        self.animals_dropdown.currentIndexChanged.connect(self.update_price)
+
+    def load_dropdowns(self):
+        connection = create_connection()
+        if connection:
+            try:
+                with connection.cursor() as cursor:
+                    # Load animals
+                    cursor.execute("SELECT ID_animals, name, price FROM animals")
+                    animals = cursor.fetchall()
+                    for animal in animals:
+                        self.animals_dropdown.addItem(f"{animal[1]} ({animal[2]})", (animal[0], animal[2]))
+
+                    # Load services
+                    cursor.execute("SELECT ID_service, name, price FROM service")
+                    services = cursor.fetchall()
+                    for service in services:
+                        self.services_dropdown.addItem(f"{service[1]} ({service[2]})", (service[0], service[2]))
+
+                    # Load employers
+                    cursor.execute("SELECT ID_employer, first_name, last_name FROM employers")
+                    employers = cursor.fetchall()
+                    for employer in employers:
+                        self.employers_dropdown.addItem(f"{employer[1]} {employer[2]}", employer[0])
+            except pymysql.MySQLError as e:
+                print(f"Error loading dropdowns: {e}")
+            finally:
+                connection.close()
+
+    def update_price(self):
+        animal_price = self.animals_dropdown.currentData()[1] if self.animals_dropdown.currentData() else 0
+        service_price = self.services_dropdown.currentData()[1] if self.services_dropdown.currentData() else 0
+        total_price = animal_price + service_price
+        self.price_label.setText(f"Price: {total_price}")
+
+    def create_record(self):
+        first_name = self.first_name_input.text()
+        middle_name = self.middle_name_input.text()
+        last_name = self.last_name_input.text()
+        date_record = self.date_record_input.date().toString("yyyy-MM-dd")
+        phone_number = self.phone_number_input.text()
+        ID_animals = self.animals_dropdown.currentData()[0]
+        ID_service = self.services_dropdown.currentData()[0]
+        ID_employer = self.employers_dropdown.currentData()
+        animal_price = self.animals_dropdown.currentData()[1]
+        service_price = self.services_dropdown.currentData()[1]
+        total_price = animal_price + service_price
+
+        if not first_name or not last_name or not phone_number:
+            QMessageBox.warning(self, "Warning", "Please fill in all required fields.")
+            return
+
+        connection = create_connection()
+        if connection:
+            try:
+                with connection.cursor() as cursor:
+                    # Insert price into the price table
+                    cursor.execute("INSERT INTO price (price) VALUES (%s)", (total_price,))
+                    connection.commit()
+                    price_id = cursor.lastrowid
+
+                    # Insert record into the record table
+                    sql = """
+                    INSERT INTO record (first_name, middle_name, last_name, date_record, phone_number, ID_animals, ID_service, ID_employer, price)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """
+                    cursor.execute(sql, (first_name, middle_name, last_name, date_record, phone_number, ID_animals, ID_service, ID_employer, price_id))
+                    connection.commit()
+
+                    QMessageBox.information(self, "Success", "Record created successfully.")
+                    self.go_back()
+            except pymysql.MySQLError as e:
+                print(f"Error creating the record: {e}")
+            finally:
+                connection.close()
+
+    def go_back(self):
+        self.main_window = MainWindow()
+        self.main_window.show()
+        self.close()
 
 # Update the MainWindow to open the EmployeesWindow
 class MainWindow(QWidget):
@@ -887,6 +922,7 @@ class MainWindow(QWidget):
 
         self.record_button = QPushButton("Запись", self)
         self.record_button.setGeometry(50, 50, 100, 40)
+        self.record_button.clicked.connect(self.open_record_window)
 
         self.report_button = QPushButton("Отчёт", self)
         self.report_button.setGeometry(200, 50, 100, 40)
@@ -938,12 +974,11 @@ class MainWindow(QWidget):
         self.services_window = ServicesWindow()
         self.services_window.show()
         self.close()
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = LoginWindow()
-    window.show()
-    sys.exit(app.exec())
+        
+    def open_record_window(self):
+        self.record_window = RecordWindow()
+        self.record_window.show()
+        self.close()
 
 
 if __name__ == "__main__":
