@@ -778,40 +778,36 @@ class RecordWindow(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Запись")
-        self.setFixedSize(400, 500)
+        self.setWindowTitle("Создать запись")
+        self.setFixedSize(700, 700)
 
         layout = QVBoxLayout()
 
-        # Input fields
-        self.first_name_input = QLineEdit()
-        self.first_name_input.setPlaceholderText("First Name")
-        layout.addWidget(self.first_name_input)
-
-        self.middle_name_input = QLineEdit()
-        self.middle_name_input.setPlaceholderText("Middle Name")
-        layout.addWidget(self.middle_name_input)
-
-        self.last_name_input = QLineEdit()
-        self.last_name_input.setPlaceholderText("Last Name")
-        layout.addWidget(self.last_name_input)
-
-        self.date_record_input = QDateEdit()
-        self.date_record_input.setCalendarPopup(True)
-        layout.addWidget(self.date_record_input)
-
-        self.phone_number_input = QLineEdit()
-        self.phone_number_input.setPlaceholderText("Phone Number")
-        layout.addWidget(self.phone_number_input)
+        # Input fields with labels
+        self.fields = {}
+        labels = ['First Name', 'Middle Name', 'Last Name', 'Phone Number', 'Date Record']
+        for label in labels:
+            lbl = QLabel(f"{label}:")
+            layout.addWidget(lbl)
+            if label == 'Date Record':
+                line_edit = QDateEdit()
+                line_edit.setCalendarPopup(True)
+            else:
+                line_edit = QLineEdit()
+            layout.addWidget(line_edit)
+            self.fields[label] = line_edit
 
         # Dropdowns
         self.animals_dropdown = QComboBox()
+        layout.addWidget(QLabel("Animal:"))
         layout.addWidget(self.animals_dropdown)
 
         self.services_dropdown = QComboBox()
+        layout.addWidget(QLabel("Service:"))
         layout.addWidget(self.services_dropdown)
 
         self.employers_dropdown = QComboBox()
+        layout.addWidget(QLabel("Employer:"))
         layout.addWidget(self.employers_dropdown)
 
         # Price field
@@ -832,6 +828,35 @@ class RecordWindow(QWidget):
         self.load_dropdowns()
         self.services_dropdown.currentIndexChanged.connect(self.update_price)
         self.animals_dropdown.currentIndexChanged.connect(self.update_price)
+
+        # Apply consistent stylesheet
+        self.setStyleSheet("""
+            QWidget {
+                background-color: #f7f7f7;
+            }
+            QLabel {
+                font-size: 14px;
+                color: #333;
+            }
+            QLineEdit, QDateEdit, QComboBox {
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                padding: 5px;
+                font-size: 14px;
+            }
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                padding: 10px;
+                font-size: 14px;
+                margin-top: 10px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
 
     def load_dropdowns(self):
         connection = create_connection()
@@ -867,11 +892,11 @@ class RecordWindow(QWidget):
         self.price_label.setText(f"Price: {total_price}")
 
     def create_record(self):
-        first_name = self.first_name_input.text()
-        middle_name = self.middle_name_input.text()
-        last_name = self.last_name_input.text()
-        date_record = self.date_record_input.date().toString("yyyy-MM-dd")
-        phone_number = self.phone_number_input.text()
+        first_name = self.fields['First Name'].text()
+        middle_name = self.fields['Middle Name'].text()
+        last_name = self.fields['Last Name'].text()
+        date_record = self.fields['Date Record'].date().toString("yyyy-MM-dd")
+        phone_number = self.fields['Phone Number'].text()
         ID_animals = self.animals_dropdown.currentData()[0]
         ID_service = self.services_dropdown.currentData()[0]
         ID_employer = self.employers_dropdown.currentData()
@@ -906,6 +931,13 @@ class RecordWindow(QWidget):
                 print(f"Error creating the record: {e}")
             finally:
                 connection.close()
+
+    def go_back(self):
+        self.main_window = MainWindow()
+        self.main_window.show()
+        self.close()
+
+
 
     def go_back(self):
         self.main_window = MainWindow()
