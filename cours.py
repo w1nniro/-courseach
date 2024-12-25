@@ -937,7 +937,86 @@ class RecordWindow(QWidget):
         self.main_window.show()
         self.close()
 
+class ScheduleWindow(QWidget):
+    def __init__(self):
+        super().__init__()
 
+        self.setWindowTitle("Расписание")
+        self.setFixedSize(800, 600)
+
+        layout = QVBoxLayout()
+
+        self.orders_table = QTableWidget()
+        layout.addWidget(self.orders_table)
+
+        self.back_button = QPushButton("Назад")
+        self.back_button.clicked.connect(self.go_back)
+        layout.addWidget(self.back_button)
+
+        self.setLayout(layout)
+
+        self.load_orders()
+
+        self.setStyleSheet("""
+            QTableWidget {
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                font-size: 14px;
+            }
+            QHeaderView::section {
+                background-color: #f0f0f0;
+                padding: 4px;
+                border: 1px solid #ddd;
+            }
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                padding: 10px;
+                font-size: 14px;
+                margin: 5px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+
+
+    def load_orders(self):
+        connection = create_connection()
+        if connection:
+            try:
+                with connection.cursor() as cursor:
+                    sql = """
+                    SELECT r.last_name, r.first_name, r.middle_name, r.date_record, r.phone_number,
+                           a.name AS animal_name, s.name AS service_name, e.first_name AS employer_first_name,
+                           e.last_name AS employer_last_name, p.price
+                    FROM record r
+                    JOIN animals a ON r.ID_animals = a.ID_animals
+                    JOIN service s ON r.ID_service = s.ID_service
+                    JOIN employers e ON r.ID_employer = e.ID_employer
+                    JOIN price p ON r.price = p.ID_price
+                    """
+                    cursor.execute(sql)
+                    orders = cursor.fetchall()
+
+                    self.orders_table.setRowCount(len(orders))
+                    self.orders_table.setColumnCount(10)
+                    self.orders_table.setHorizontalHeaderLabels([
+                        'Last_name', 'First_name', 'Middle_name', 'Date', 'Phone Number',
+                        'Animal', 'Service', 'Employer First Name', 'Employer Last Name', 'Price'
+                    ])
+
+                    for row_index, order in enumerate(orders):
+                        for col_index, data in enumerate(order):
+                            self.orders_table.setItem(row_index, col_index, QTableWidgetItem(str(data)))
+
+                    self.orders_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+            except pymysql.MySQLError as e:
+                print(f"Error querying the database: {e}")
+            finally:
+                connection.close()
 
     def go_back(self):
         self.main_window = MainWindow()
@@ -965,6 +1044,7 @@ class MainWindow(QWidget):
 
         self.schedule_button = QPushButton("Расписание", self)
         self.schedule_button.setGeometry(50, 150, 100, 40)
+        self.schedule_button.clicked.connect(self.open_schedule_window)
 
         self.animals_button = QPushButton("Животные", self)
         self.animals_button.setGeometry(200, 150, 100, 40)
@@ -1010,6 +1090,11 @@ class MainWindow(QWidget):
     def open_record_window(self):
         self.record_window = RecordWindow()
         self.record_window.show()
+        self.close()
+
+    def open_schedule_window(self):
+        self.schedule_window = ScheduleWindow()
+        self.schedule_window.show()
         self.close()
 
 
