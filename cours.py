@@ -1,5 +1,7 @@
 from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QComboBox, QDateEdit, QLineEdit, QPushButton, QVBoxLayout, QTableWidget, QTableWidgetItem, QHBoxLayout, QHeaderView, QDialog, QMessageBox
 import sys
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import pymysql
 
 def create_connection():
@@ -942,7 +944,7 @@ class ScheduleWindow(QWidget):
         super().__init__()
 
         self.setWindowTitle("Расписание")
-        self.setFixedSize(800, 600)
+        self.setFixedSize(990, 700)
 
         layout = QVBoxLayout()
 
@@ -1022,6 +1024,138 @@ class ScheduleWindow(QWidget):
         self.main_window = MainWindow()
         self.main_window.show()
         self.close()
+        
+class ReportWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("Отчёт")
+        self.setFixedSize(800, 600)
+
+        layout = QVBoxLayout()
+
+        # Year selection
+        self.year_label = QLabel("Выберите год:")
+        layout.addWidget(self.year_label)
+
+        self.year_dropdown = QComboBox()
+        self.load_years()
+        layout.addWidget(self.year_dropdown)
+
+        # Chart area
+        self.figure = plt.figure()
+        self.canvas = FigureCanvas(self.figure)
+        layout.addWidget(self.canvas)
+
+        # Visitors count
+        self.visitors_label = QLabel("Количество посетителей: 0")
+        layout.addWidget(self.visitors_label)
+
+        # Back button
+        self.back_button = QPushButton("Назад")
+        self.back_button.clicked.connect(self.go_back)
+        layout.addWidget(self.back_button)
+
+        self.setLayout(layout)
+
+        # Connect year selection change to update chart
+        self.year_dropdown.currentIndexChanged.connect(self.update_chart)
+
+        # Initial chart load
+        self.update_chart()
+
+        # Apply consistent stylesheet
+        self.setStyleSheet("""
+            QWidget {
+                background-color: #f7f7f7;
+            }
+            QLabel {
+                font-size: 14px;
+                color: #333;
+            }
+            QComboBox {
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                padding: 5px;
+                font-size: 14px;
+            }
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                padding: 10px;
+                font-size: 14px;
+                margin-top: 10px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+
+    def load_years(self):
+        connection = create_connection()
+        if connection:
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT DISTINCT YEAR(date_record) FROM record")
+                    years = cursor.fetchall()
+                    for year in years:
+                        self.year_dropdown.addItem(str(year[0]))
+            except pymysql.MySQLError as e:
+                print(f"Error loading years: {e}")
+            finally:
+                connection.close()
+
+    def update_chart(self):
+        selected_year = self.year_dropdown.currentText()
+        if not selected_year:
+            return
+
+        connection = create_connection()
+        if connection:
+            try:
+                with connection.cursor() as cursor:
+                    # Query for monthly revenue
+                    sql = """
+                    SELECT MONTH(date_record) AS month, SUM(p.price) AS revenue
+                    FROM record r
+                    JOIN price p ON r.price = p.ID_price
+                    WHERE YEAR(date_record) = %s
+                    GROUP BY month
+                    """
+                    cursor.execute(sql, (selected_year,))
+                    data = cursor.fetchall()
+
+                    # Prepare data for plotting
+                    months = [month for month, _ in data]
+                    revenue = [rev for _, rev in data]
+
+                    # Plotting
+                    self.figure.clear()
+                    ax = self.figure.add_subplot(111)
+                    ax.bar(months, revenue, color='blue')
+                    ax.set_title(f"Выручка за {selected_year}")
+                    ax.set_xlabel("Месяц")
+                    ax.set_ylabel("Выручка")
+                    ax.set_xticks(range(1, 13))
+                    ax.set_xticklabels(['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'])
+                    self.canvas.draw()
+
+                    # Query for visitors count
+                    cursor.execute("SELECT COUNT(*) FROM record WHERE YEAR(date_record) = %s", (selected_year,))
+                    visitors_count = cursor.fetchone()[0]
+                    self.visitors_label.setText(f"Количество посетителей: {visitors_count}")
+
+            except pymysql.MySQLError as e:
+                print(f"Error updating chart: {e}")
+            finally:
+                connection.close()
+
+    def go_back(self):
+        self.main_window = MainWindow()
+        self.main_window.show()
+        self.close()
 
 # Update the MainWindow to open the EmployeesWindow
 class MainWindow(QWidget):
@@ -1037,6 +1171,7 @@ class MainWindow(QWidget):
 
         self.report_button = QPushButton("Отчёт", self)
         self.report_button.setGeometry(200, 50, 100, 40)
+        self.report_button.clicked.connect(self.open_report_window)
 
         self.employees_button = QPushButton("Сотрудники", self)
         self.employees_button.setGeometry(350, 50, 100, 40)
@@ -1095,6 +1230,11 @@ class MainWindow(QWidget):
     def open_schedule_window(self):
         self.schedule_window = ScheduleWindow()
         self.schedule_window.show()
+        self.close()
+        
+    def open_report_window(self):
+        self.report_window = ReportWindow()
+        self.report_window.show()
         self.close()
 
 
